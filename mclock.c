@@ -1,51 +1,40 @@
-/******************************************************************************
+/*
+
+   MClock, multi-mode clock
 
    +=====================================================+
-   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
-   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
-   |  .  +--+--+--+--+--+--+--+  +--+--+--+--+--+--+--+  |
-   |  . C7 C6 R1 C0 R3 C5 C3 R0 C7 C6 R1 C0 R3 C5 C3 R0  |
-   |  .  |    b2 b3           |  |                    |  |
-   |  +--+--+--+--+--+--+--+--+--+                    |  |
-   | |G b6 b7  T  R a7 a6 b5 b4 b3|                   |  |
-   | |                            |                   |  |
-   | |+ a0 a1 a2 a3 a4 a5 b0 b1 b2|                   |  |
-   |  +--+--+--+--+--+--+--+--+--+  .  .  .  .  .  .  |  |
-   |  .  +--+--+--+--+--+--+--+  +--+--+--+--+--+--+--+  |
-   |  . R4 R6 C1 C2 R7 C4 R5 R2 R4 R6 C1 C2 R7 C4 R5 R2  |
-   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
-   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
-   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
-   +=====================================================+
-
-
-   +=====================================================+
-   |  .  .  +(w2)-------------o(w3)---------------+.  .  |
-   |  .  ..==. .==.  .  .  .  .  o(w4)----------o |.  .  |
-   |  .  .|  | |  | |.  +--+--+--+--+--+--+--+  . |.  .  |
-   |  .  o|   ||   ||o C7 C6 R1 C0 R3 C5 C3 R0  . |.  .  |
-   |  .  ||  | |  | |.  |    b2 b3           |  . |.  .  |
-   |  .  |.==. .==.  +--+--+--+--+--+--+--+--+--+ |.  .  |
-   |     |  |       |G b6 b7  T  R a7 a6 b5 b4 b3||      |
-   |     |  |       |                            ||      |
-   |     |  |       |+ a0 a1 a2 a3 a4 a5 b0 b1 b2||      |
-   |  .  |  o  .  . .+--+--+--+--+--+--+--+--+--+ |.  .  |
-   |  .  +(w1)-------o  +--+--+--+--+--+--+--+  o-+.  .  |
-   |  .  .  .  .  .  .  R4 R6 C1 C2 R7 C4 R5 R2 .  .  .  |
-   |  .  .  .  .  .  .  x  x  o  o  .  .  .  .  .  .  .  |
-   |  .  .  o  .  .  o  .  .  .  .  .  .  .  .  .  .  .  |
-   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
+   |  .  .  o--(W4)--------o        o--(W1)-------------.| W1 (1.6) b2 to CK
+   |  .  . (-) .  .  .-------(W2)------o--(W3)--------o || W2 (1.6) BTN to IO
+   |  .  .  .  .  .  |  .  .  +--+--+--+--+--+--+--+  . || W3 (0.5) b3 to IO
+   |  .  .  .  .  .  |  .  . C7 C6 R1 C0 R3 C5 C3 R0  . || W4 (0.6) battery to -ve
+   |  .  .  .  .  .  |  .  .  |    b2 b3           |  . || W5 (0.6) battery to +ve
+   |  .  .  .  .  .  |  .  +--+--+--+--+--+--+--+--+--+ ||
+   |                 |    |G b6 b7 CK IO a7 a6 b5 b4 b3|||
+   |                 |    |                            |||
+   |                 |    |+ a0 a1 a2 a3 a4 a5 b0 b1 b2|||
+   |  .  .  .  .  .  |  . .+--+--+--+--+--+--+--+--+--+ ||
+   |  .  .  .  .  .  |  .  .  +--+--+--+--+--+--+--+  o-.|
+   |  .  .  .  .  .  |  .  .  R4 R6 C1 C2 R7 C4 R5 R2 .  |
+   |  .  .  .  .  .  |  .  .  x  x  o  o  .  .  .  .  .  |
+   |  .  . (+) .  .  o=BTN=o  .  .  .  .  .  .  .  .  .  | BTN button
+   |  .  .  o--(W5)--------o  .  .  .  .  .  .  .  .  .  | x-x, o-o easter egg mini-button
    +=====================================================+
 
 
-******************************************************************************/
+*/
 
 #include <msp430.h>
 #include <stdlib.h>
+#define G2412
+
+#define NO_C7	1	// not connecting C7 of led matrix as it interferes w/ 32khz xtal
 
 const uint8_t row_col_map[] = { 
 	((8|4)<<4|(8|3)), ((8|2)<<4|(0|2)), ((8|1)<<4|(0|3)), ((0|7)<<4|(8|5)), 
 	((0|0)<<4|(0|5)), ((8|0)<<4|(0|6)), ((0|1)<<4|(8|7)), ((0|4)<<4|(8|6)),
+	// below is used when led matrix is turned around, i.e. 180 degrees
+	//((0|0)<<4|(0|4)), ((0|5)<<4|(0|6)), ((8|6)<<4|(0|7)), ((0|3)<<4|(0|1)), 
+	//((8|4)<<4|(8|2)), ((8|7)<<4|(0|2)), ((8|5)<<4|(8|0)), ((8|3)<<4|(8|1)),
 };
 
 // font matrix, i don't need the letters, but useful for other projects
@@ -76,6 +65,38 @@ volatile uint8_t scroll=0;
 volatile uint8_t game_ticks=0;
 
 const uint8_t menu_icon[3][8] = {
+#ifdef NO_C7
+	{
+	0b00000000,
+	0b00111000,
+	0b01001100,
+	0b10010010,
+	0b10100010,
+	0b10010010,
+	0b01000100,
+	0b00111000,
+	},
+	{
+	0b00000000,
+	0b00010000,
+	0b01010100,
+	0b00111000,
+	0b11101110,
+	0b00111000,
+	0b01010100,
+	0b00010000,
+	},
+	{
+	0b00000000,
+	0b00000000,
+	0b01000100,
+	0b10000010,
+	0b10000010,
+	0b10000010,
+	0b01000100,
+	0b00111000,
+	},
+#else
 	{
 	0b00000000,
 	0b00011100,
@@ -106,6 +127,7 @@ const uint8_t menu_icon[3][8] = {
 	0b00100010,
 	0b00011100,
 	},
+#endif
 };
 
 
@@ -117,7 +139,7 @@ const uint8_t menu_desc[] = {
 	};
 
 #define BUTTON_PIN 		BIT3
-#define SECONDS_TO_SLEEP	15
+#define SECONDS_TO_SLEEP	8
 
 const uint8_t dice[] = { 0x10, 0x28, 0x54, 0x45, 0x55, 0x6d, }; // dice matrix
 
@@ -172,7 +194,11 @@ void show_char(uint8_t data, uint8_t which) {
 			}//if
 		}//else
 		line &= ~0x30;
+#ifdef NO_C7
+		if (line > 1) dots <<= 3;
+#else
 		if (line) dots <<= 3;
+#endif
 	}//if
 	else {
 		data <<= 1;
@@ -193,6 +219,16 @@ void show_char(uint8_t data, uint8_t which) {
 			}//else
 		}//if
 here:
+#ifdef NO_C7
+		fb[line] <<= 4;
+		if (use_dots) {
+			fb[line] |= (((uint8_t) dots) & 0x07)<<1;
+			dots >>= 3;
+		}//if
+		else {
+			// position 1 bit left, now that we don't have column 7
+			fb[line] |= (fnt>>2) & 0x0e;
+#else
 		fb[line] <<= use_dots ? 5 : 4;
 		if (use_dots) {
 			fb[line] |= ((uint8_t) dots) & 0x07;
@@ -200,6 +236,7 @@ here:
 		}//if
 		else {
 			fb[line] |= (fnt>>3) & 0x07;
+#endif
 		}//else
 		line++;
 		fnt <<= 3;
@@ -217,7 +254,7 @@ void main(void) {
 	P2SEL = 0;
 	CCTL0 = CCIE;                             // CCR0 interrupt enabled
 	CCR0 = 62500;
-	TACTL = TASSEL_2 + MC_1;                  // SMCLK, upmode
+	TACTL = TASSEL_2 + MC_1;           // SMCLK, upmode
 
 	_BIS_SR(GIE); 
 	//_BIS_SR(LPM0_bits + GIE);                 // Enter LPM0 w/ interrupt
@@ -278,7 +315,10 @@ void main(void) {
 				time++;
 				state |= ST_REFRESH;
 			}//if
-			if (mode) state |= ST_REFRESH;
+			if (mode) {
+				state |= ST_REFRESH;
+				scroll = 0;
+			}//if
 		}//while
 
 		if (state&ST_BREATH) {
@@ -369,25 +409,38 @@ void main(void) {
 						if (hr<10) hr += 0x0b*10;
 						show_char(hr, 0x42);
 						for (i=0;i<8;i++) fb[i] <<= 2;
+#ifdef NO_C7
+						fb[3] |= 0x02;
+						fb[5] |= 0x02;
+#else
 						fb[3] |= 0x01;
 						fb[5] |= 0x01;
+#endif
 						show_char(min, 0x4a);
 						state |= ST_SCROLL;
-						scroll = 0;
+						//scroll = 0;
 					}//else
 					break;
 				case 1:			// seconds
 					show_char(sec, 0x42);
 					break;
 				case 2:			// tix
+#ifdef NO_C7
+					show_char(hr, 0x51);
+#else
 					show_char(hr, 0x50);
+#endif
 					show_char(min, 0x54);
 					break;
 				case 3:			// dice
 					{
 					static uint8_t idx = 0;
 					min /= 5;
+#ifdef NO_C7
+					i = 0x61;
+#else
 					i = 0x60;
+#endif
 					do {
 						uint8_t j = (hr <= 6) ? hr+1 : (12-hr)+1;
 						j = idx%j;
@@ -396,7 +449,11 @@ void main(void) {
 						show_char(hr, i);
 						idx++;
 						hr = min;
+#ifdef NO_C7
+						i += 3;
+#else
 						i += 4;
+#endif
 					} while (i<=0x64);
 					}
 					break;
@@ -429,12 +486,16 @@ void main(void) {
 					}
 					*/
 					{
-					uint8_t tm[8] = { sec%10, sec/10, 0, min%10, min/10, 0, hr%10, hr/10, };
+#ifdef NO_C7
+					uint8_t tm[8] = { 0, sec%10, sec/10, min%10, min/10, hr%10, hr/10, 0, };
+#else
+  					uint8_t tm[8] = { sec%10, sec/10, 0, min%10, min/10, 0, hr%10, hr/10, };
+#endif
 					uint8_t j=0x80, *p=(uint8_t*) fb;
 					while (j) {
 						*p = 0;
 						for (i=0;i<8;i++)
-							if (tm[i]&j) *p |= (1<<i);
+							if ((tm[i]<<2)&j) *p |= (1<<i);
 						j >>= 1;
 						p++;
 					}//while
@@ -469,7 +530,7 @@ void main(void) {
 
 					// we wake up here
 					if (P2IFG & BIT3) {		// from keypress
-						while (P2IN&BUTTON_PIN); 	// make sure key is not depressed
+						while (P2IN&BUTTON_PIN) __asm("nop"); 	// make sure key is not depressed
 						if (last_mode && last_mode < 5 && !sleep_at) mode = last_mode - 1;
 						else mode = 5;
 						state |= ST_PRESSED;
@@ -571,9 +632,15 @@ void main(void) {
 				// following lines for 'icon' menu
 				for (i=0;i<8;i++) fb[i] = menu_icon[menu-1][i];
 				if (menu == 3 && (state&ST_AUTO)) {
+#ifdef NO_C7
+					fb[1] |= 0x10;
+					fb[2] |= 0x10;
+					fb[3] |= 0x10;
+#else
 					fb[1] |= 0x08;
 					fb[2] |= 0x08;
 					fb[3] |= 0x08;
+#endif
 				}//for
 			}//if
 			else {
@@ -746,6 +813,7 @@ __interrupt void watchdog_timer (void) {
 	if (stacked >= 60) {
 		stacked = 0;
 		time++;
+		time %= (12*60);
 	}//if
 	//_BIC_SR_IRQ(LPM3_bits);
 	//WDTCTL = WDTPW + WDTHOLD + WDTNMI + WDTNMIES;

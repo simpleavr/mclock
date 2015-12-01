@@ -5,6 +5,17 @@ mclock
 
 Multimode Matrix Clock
 
+Changes Dec 01, 2015
+____________________
+Clock builder Terry M. took the time to build this project and found out that the sharing of the xin xout pins between led driving and time keeping (via 32khz crystal) is a bad idea. I.e. the clock xtal could not oscillate.
+
+I tried it and cannot get the problem resolve, there is always a osc fault interrupt and mclock cannot keep time at all! Now I got it to work initially I can no longer reproduce. This change is to resolve this problem by sacrifying C7 (column 7) of the LED matrix, so that xin is isolated and used for xtal oscillation only. This indeed solve the time keeping issue at the expense of 8 less dots of display (now 8x7 dots). I also re-arrange various display modes to reflect this change.
+
+There is a "#define NO_C7" directive at the top of the source code, commenting it out will allow for build of previous 8x8 version.
+
+Thanks Terry M. to point out the bug in the previous build.
+
+
 Description
 ___________
 
