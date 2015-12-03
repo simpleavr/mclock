@@ -5,6 +5,11 @@ mclock
 
 Multimode Matrix Clock
 
+Changes Dec 03, 2015
+____________________
+Add mclock.hex ready to flash firmware.
+change so that source now compiles on both gcc and CCS.
+
 Changes Dec 01, 2015
 ____________________
 Clock builder Terry M. took the time to build this project and found out that the sharing of the xin xout pins between led driving and time keeping (via 32khz crystal) is a bad idea. I.e. the clock xtal could not oscillate.
