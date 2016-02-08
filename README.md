@@ -5,6 +5,10 @@ mclock
 
 Multimode Matrix Clock
 
+Changes Feb 08, 2016
+____________________
+This is RETIRED source. I had combined my breadboard projects into my "breadboard_collections". The latest source resides there. Please use it for the latest fixes.
+
 Changes Dec 03, 2015
 ____________________
 Add mclock.hex ready to flash firmware.
