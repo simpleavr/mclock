@@ -1,0 +1,26 @@
+
+h2 {
+	background-color:lavender;
+	border:2px solid black;
+	color:black;
+	font-size:150%;
+	padding-top:40;
+	padding-left:20;
+	padding-bottom:20;
+}
+b {
+	color:blue;
+}
+body, p, ul, img, iframe {
+	margin-left:40;
+	margin-right:40;
+	font-family:Verdana;
+}
+
+body {
+	background-color:lightcyan;
+}
+
+img {
+	width:320;
+}

@@ -1,1 +1,142 @@
-mclock
+<html>
+<head><link rel="stylesheet" type="text/css" href="default.css"></head>
+<body>
+<br>
+<h2>M-Clock</h2><br>
+<p>Minimalist's Clock? Multi-mode Clock? Matrix Clock?</p>
+<br>
+<b>M-Clock</b><br>
+<br>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/NJHCcKLHL8E" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+<br><br>
+<b>M-Clock Build</b><br>
+<br>
+<p>Minimalist Multi-mode Matrix Clock</p>
+<br>
+<br><img src="images/mclock.jpg"><br><br>
+<br><br>
+<b>Description</b><br>
+<br>
+<p>This is a multi-mode clock project based on the msp430g2432. It can be assembled with minimal parts. With limited 8x8 pixels display resolution, this 12 hour clock shows time in 6 different modes. This project is based on a older attiny 2313 project I did a few years ago.</p>
+<br>
+<b>HHMM mode</b>, typical hours plus minutes scrolling digits with colon separator.
+<br>
+<br><img src="images/mclock_hhmm.jpg"><br><br>
+<br><br>
+<b>Seconds mode</b>, shows only seconds.
+<br>
+<br><img src="images/mclock_seconds.jpg"><br><br>
+<br><br>
+<b>Tix mode</b> (shown below), led matrix is divided into quadrant, the upper quadrants shows the hour in bcd (binary coded decimal) values. they are represented by the number of dots to indicate the digits. the lower quadrants show the minute in bcd. i.e. for 5:34 it shows no dot + 5 dots on the upper half and 3 dots + 4 dots on the lower half.
+<br>
+<br><img src="images/mclock_tix.jpg"><br><br>
+<br><br>
+<b>Dice mode</b> (shown below), the led matrix is divided into two set of 'dices'. with the upper pair showing hour from 1 - 12, the lower pair of dice shows minutes in 5 minute increments. i.e. for 5:45 it shows dice value upper 5 + lower 9 (5 hour, 9 x 5 min).
+<br>
+<br><img src="images/mclock_dice.jpg"><br><br>
+<br><br>
+<b>Binary</b> (really it's bcd, or binary coded decimal) mode, (shown below) the hour, minute and second digits are show as binary dot on different columns in the led matrix. the columns 0 and 1 (from left) represents the hour digits, column 2 is blanked, columns 3 and 4 represent the minute digits, colum 5 is blanked, columns 6 and 7 represents the second digits.
+<br>
+<br><img src="images/mclock_binary.jpg"><br><br>
+<br><br>
+<p>The circuit employs row and column multiplexing to drive the leds, one row at a time, this gives a 12.5% duty cycle when "sets" of leds (8 of them in each of the 8 rows) are turn on briefly. current limiting resistors are eliminated to save breadboard estate and as we are not constantly driving individual leds, they are not going to be damaged.</p>
+<br>
+<p>The control (user interface) is also arranged so that we only use one tactile button for input. the firmware capture long button presses (press and hold) for menu rotation and normal button presses for menu selection.</p>
+<br>
+<p>By migrating this project from an AVR mcu to a msp430 mcu I had made it possible to keep time a lot more accurately. During display (i.e. led on) the project runs at 1Mhz DCO. The msp430 mcu has factory calibrated clock values. When not displaying, this project enters a LPM3 (low-power mode 3) to conserve power. At LPM3 the DCO clock cannot be used and the project switches to use a 32Khz crystal based AClk to keep time.</p>
+<br>
+<b>Features</b><br>
+<ul>
+<li>Minimal component count, 4 parts.</li>
+<li>Battery operated from 3V to 3.6V.</li>
+<li>Use of watchdog timer to keep time, power-down sleep mode (LPM3) takes uA power.</li>
+<li>32Khz crystal to keep accurate time when sleep.</li>
+<li>Runs 1Mhz DCO calibrated clock when active (displaying time).</li>
+<li>This is a 12H clock, not 24H and has no AM/PM indicator.</li>
+<li>Easter egg application.</li>
+<li>Parts list</li>
+<li>msp430g2432 (or other G series dip 20pin devices w/ 4k+ flash)</li>
+<li>8x8 LED matrix display (red only, this is a 3V project)</li>
+<li>tactile button</li>
+<li>32Khz clock crystal</li>
+<li>2x LR44 button cell or 3V-3.6V other battery source</li>
+</ul>
+<br>
+<br><img src="images/mclock_parts.jpg"><br><br>
+<br><br>
+<b>Application Notes</b><br>
+<ul>
+<li>Short key press in display mode cycles through HHMM, seconds, tix, dice, binary and sleep modes.</li>
+<li>Long press enters setup mode, subsequent long press rotates thru menu.</li>
+<li>Menu items cycles thru 'Set Clock', 'Dimmer', 'Auto-off'.</li>
+<li>In 'Set Clock' setup mode, short presses increment digit values (hours, minutes) and long press confirms.</li>
+<li>In 'Dimmer' setup mode, short presses cycles through available brightness levels, long press confirms setting.</li>
+<li>In 'Auto-off' setup mode, short presses toggle the auto-off on and off. With auto-off turned on, the clock displays time for 15 seconds and turn itself into LPM3 sleep mode to converse power. With auto-off turned off, display is on continuously.</li>
+<li>When in sleep mode, MCU goes in power down mode, consuming less than 30uA of power, 32Khz crystal w/ watchdog timer is used to keep time. A pin interrupt is enabled to allow for wake up via tactile button. In this mode the main clock is disabled to conserve power.</li>
+<li>Led segment multiplexing includes time delays to compensate for brightness differences for individual rows.</li>
+</ul>
+<br>
+<b>Breadboard Layout</b><br>
+<br>
+<p>the 8x8 led matrix has dot size of 1.9mm and is of common cathode, if you have common anode type, you can change a few lines in the code for adoption. see the following diagram and see if you have the right pin-outs. it appears they are quite common and if you purchase via ebay most suppliers have the same pin-out even if the model number is different.</p>
+<br>
+<br><img src="images/mclock_bb1.jpg"><img src="images/mclock_bb2.jpg"><br><br>
+<pre>
+<code>
+   +=====================================================+
+   |  .  .  +-------------------(1)------------(1) .  .  |
+   |  .  .  |  .  .  .  o||o (2)------------------+.  .  | (crystal)
+   |  .  ./ |  .  . \.  +--+--+--+--+--+--+--+  . |.  .  |
+   |  . (+) |  .  .  o C7 C6 R1 C0 R3 C5 C3 R0  . |.  .  | (2xLR44 cell)
+   |  .  .\ |  .  . /.  |    b2 b3           |  . |.  .  |
+   |  . (+) |        +--+--+--+--+--+--+--+--+--+ |.  .  |
+   |     |  |       |G b6 b7  T  R a7 a6 b5 b4 b3||      |
+   |     |  |       |                            ||      | (msp430 mcu)
+   |     |  |       |+ a0 a1 a2 a3 a4 a5 b0 b1 b2||      |
+   |  .  | (1) .  . .+--+--+--+--+--+--+--+--+--+ |.  .  |
+   |  .  +----------(+) +--+--+--+--+--+--+--+ (2)+.  .  | (8x8 red led matrix)
+   |  .  .  .  .  .  .  R4 R6 C1 C2 R7 C4 R5 R2 .  .  .  |
+   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
+   |  .  . (1)-[  ]-(+) .  .  .  .  .  .  .  .  .  .  .  | (tactile button)
+   |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  |
+   +=====================================================+
+<br>
+   *note: all (1)s, (2)s and (+) points are electrically connected
+<br>
+</code>
+</pre>
+<b>Schematic</b><br>
+<br>
+<pre>
+<code>
+                            MSP430G2xxx
+                         -----------------
+          --------------|RESET            |
+          | ------------|TEST             |
+          | |           |                 |
+          | |   ROW5 <--|P2.0         P1.0|--> ROW4 (of LED Matrix)
+ /|\      | |   ROW2 <--|P2.1         P1.1|--> ROW6
+  |  _|_  | --- ROW1 <--|P2.2         P1.2|--> COL1
+  --o   o------ COL0 <--|P2.3         P1.3|--> COL2
+    Button      ROW0 <--|P2.4         P1.4|--> ROW7
+                COL3 <--|P2.5         P1.5|--> COL4
+      32Khz /-- COL7 <--|P2.6(XIN)    P1.6|--> COL5
+    Crystal \-- COL6 <--|P2.7(XOUT)   P1.7|--> ROW3
+                        |                 |
+<br>
+</code>
+</pre>
+<b>Assembling</b><br>
+<ul>
+<li>Follow breadboard layout and place two jumper wires on mini breadboard</li>
+<li>Place msp430g2432 mcu</li>
+<li>Place 32Khz crystal</li>
+<li>Place Tactile Button</li>
+<li>Place power source (I am using 2xLR44 w/ magnets as holders)</li>
+<li>Finally place 8x8 led matrix on top of msp430g2432</li>
+</ul>
+<br>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/lck_ptUh88Y" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+<br><br>
+</body>
+</html>
